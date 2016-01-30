@@ -22,7 +22,7 @@ tokenFromEnv :: IO String
 tokenFromEnv = getEnv "GITLAB_TOKEN"
 
 data MergeRequest = MergeRequest
-  { id :: String
+  { id :: Int
   , title :: String
   } deriving (Show, Generic)
 
@@ -50,4 +50,4 @@ main = do
   res <- runEitherT $ query token
   case res of
     Left err -> putStrLn $ "Error: " ++ show err
-    Right mrs -> print mrs
+    Right mrs -> print $ title $ head mrs
