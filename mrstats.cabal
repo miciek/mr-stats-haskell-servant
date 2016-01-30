@@ -19,14 +19,23 @@ executable mrstats
   main-is:             Main.hs
   build-depends:       base >=4.8 && <4.9
                      , aeson >= 0.8
+                     , attoparsec
+                     , blaze-html
+                     , blaze-markup
                      , bytestring
                      , directory
+                     , either
+                     , http-media
                      , http-types
                      , js-jquery
                      , lucid
+                     , mtl
                      , random
                      , servant
+                     , servant-client
                      , servant-docs
+                     , servant-server
+                     , string-conversions
                      , text
                      , time
                      , transformers
