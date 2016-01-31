@@ -26,6 +26,7 @@ executable mrstats
                      , directory
                      , either
                      , http-media
+                     , http-link-header
                      , http-types
                      , js-jquery
                      , lucid
@@ -40,5 +41,6 @@ executable mrstats
                      , time
                      , transformers
                      , transformers-compat
+                     , utf8-string
                      , wai
                      , warp
