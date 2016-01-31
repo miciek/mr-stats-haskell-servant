@@ -13,7 +13,7 @@ module Main where
 import Control.Monad.Trans.Either
 import Data.Aeson
 import Data.Proxy
-import Data.Text hiding (foldr, length)
+import Data.Text (Text, unpack)
 import Data.ByteString.UTF8 (fromString)
 import GHC.Generics
 import Servant.API
@@ -109,4 +109,4 @@ main :: IO ()
 main = do
   token <- tokenFromEnv
   mrs <- allMergeRequests token
-  print $ length mrs
+  mapM_ (putStrLn . title) mrs
