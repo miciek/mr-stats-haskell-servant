@@ -11,6 +11,7 @@
 module Main where
 
 import Control.Monad.Trans.Either
+import Control.Monad.Trans
 import Control.Concurrent
 import Control.Concurrent.STM
 import Data.Aeson
@@ -20,9 +21,12 @@ import Data.ByteString.UTF8 (fromString)
 import GHC.Generics
 import Servant.API
 import Servant.Client
+import Servant.Server
 import System.Environment
 import Network.HTTP.Link
 import Network.HTTP.Types.URI
+import Network.Wai
+import Network.Wai.Handler.Warp
 
 tokenFromEnv :: IO String
 tokenFromEnv = getEnv "GITLAB_TOKEN"
@@ -33,6 +37,7 @@ data MergeRequest = MergeRequest
   } deriving (Show, Generic)
 
 instance FromJSON MergeRequest
+instance ToJSON MergeRequest
 
 type API =
   "api" :> "v3"
@@ -122,12 +127,24 @@ showMergeRequests :: MergeRequestStorage -> IO ()
 showMergeRequests storage = do
   putStrLn "showing MRs"
   mrs <- atomically $ readTVar storage
-  mapM_ (putStrLn . title) mrs
+  putStrLn $ show $ length mrs
   threadDelay 3000000
   showMergeRequests storage
+
+type ServerAPI = "mrs" :> Get '[JSON] [MergeRequest]
+
+server :: MergeRequestStorage -> Server ServerAPI
+server storage = liftIO $ atomically $ readTVar storage
+
+serverAPI :: Proxy ServerAPI
+serverAPI = Proxy
+
+app :: MergeRequestStorage -> Application
+app storage = serve serverAPI (server storage)
 
 main :: IO ()
 main = do
   storage <- atomically $ newTVar []
   _ <- forkIO $ fetchMergeRequests storage
-  showMergeRequests storage
+  _ <- forkIO $ showMergeRequests storage
+  run 8080 (app storage)
