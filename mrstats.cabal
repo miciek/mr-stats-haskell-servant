@@ -36,6 +36,7 @@ executable mrstats
                      , servant-client
                      , servant-docs
                      , servant-server
+                     , stm
                      , string-conversions
                      , text
                      , time

@@ -11,6 +11,8 @@
 module Main where
 
 import Control.Monad.Trans.Either
+import Control.Concurrent
+import Control.Concurrent.STM
 import Data.Aeson
 import Data.Proxy
 import Data.Text (Text, unpack)
@@ -105,8 +107,27 @@ allMergeRequests token = go [] "1" where
             allMrs = mrs ++ current
             newPage = nextPage $ getHeadersHList result
 
-main :: IO ()
-main = do
+type MergeRequestStorage = TVar [MergeRequest]
+
+fetchMergeRequests :: MergeRequestStorage -> IO ()
+fetchMergeRequests storage = do
+  putStrLn "fetching merge requests"
   token <- tokenFromEnv
   mrs <- allMergeRequests token
+  putStrLn "fetched merge requests"
+  atomically $ writeTVar storage mrs
+  putStrLn "saved mrs to storage"
+
+showMergeRequests :: MergeRequestStorage -> IO ()
+showMergeRequests storage = do
+  putStrLn "showing MRs"
+  mrs <- atomically $ readTVar storage
   mapM_ (putStrLn . title) mrs
+  threadDelay 3000000
+  showMergeRequests storage
+
+main :: IO ()
+main = do
+  storage <- atomically $ newTVar []
+  _ <- forkIO $ fetchMergeRequests storage
+  showMergeRequests storage
