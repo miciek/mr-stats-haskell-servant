@@ -40,6 +40,7 @@ executable mrstats
                      , string-conversions
                      , text
                      , time
+                     , iso8601-time
                      , transformers
                      , transformers-compat
                      , utf8-string

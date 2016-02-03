@@ -1,4 +1,3 @@
-
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -21,6 +20,11 @@ import PagedResponse (Paged, nextPage)
 data MergeRequest = MergeRequest
   { id :: Int
   , title :: String
+  , state :: String
+  , created_at :: String
+  , updated_at :: String
+  , upvotes :: Int
+  , downvotes :: Int
   } deriving (Show, Generic)
 
 instance FromJSON MergeRequest
@@ -45,7 +49,7 @@ query :: String -> String -> EitherT ServantError IO (Paged [MergeRequest])
 query token page = mergeRequests (Just token) 3106 (Just page)
 
 allMergeRequests :: String -> IO [MergeRequest]
-allMergeRequests token = go [] "1" where
+allMergeRequests token = go [] "37" where
   go current page =
     do
       res <- runEitherT $ query token page
