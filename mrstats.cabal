@@ -41,7 +41,6 @@ executable mrstats
                      , string-conversions
                      , text
                      , time
-                     , timeit
                      , transformers
                      , transformers-compat
                      , utf8-string
