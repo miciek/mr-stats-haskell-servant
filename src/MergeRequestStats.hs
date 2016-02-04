@@ -1,27 +1,36 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module MergeRequestStats (MergeRequestStats (..), fromMergeRequest) where
+module MergeRequestStats (MergeRequestStats (..), fromMergeRequestAndComments) where
 
 import Data.Aeson
 import Data.Time.Clock
 import Data.Time.ISO8601
 import GHC.Generics
 import MergeRequests (MergeRequest (..))
+import MergeRequestComments
 
 data MergeRequestStats = MergeRequestStats
   { mergeRequest :: MergeRequest
   , timeToMerge :: NominalDiffTime
+  , commentsQty :: Int
   } deriving (Show, Generic)
 
 instance ToJSON MergeRequestStats
 
-fromMergeRequest :: MergeRequest -> Maybe MergeRequestStats
-fromMergeRequest mr = do
+fromMergeRequestAndComments :: (MergeRequest, Maybe [MergeRequestComment]) -> Maybe MergeRequestStats
+fromMergeRequestAndComments (mr, mrComments) = do
   ttm <- calculateTimeToMerge mr
-  return $ MergeRequestStats mr ttm
+  let comms = calculateCommentsQty mrComments
+  return $ MergeRequestStats mr ttm comms
 
 calculateTimeToMerge :: MergeRequest -> Maybe NominalDiffTime
 calculateTimeToMerge mr = do
   createdAt <- parseISO8601 $ created_at mr
   updatedAt <- parseISO8601 $ updated_at mr
   return $ diffUTCTime updatedAt createdAt
+
+calculateCommentsQty :: Maybe [MergeRequestComment] -> Int
+calculateCommentsQty mrComments =
+  case mrComments of
+    Just mrc -> length mrc
+    Nothing -> 0

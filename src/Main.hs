@@ -18,8 +18,9 @@ import Servant.Server
 import System.Environment
 import Network.Wai
 import Network.Wai.Handler.Warp
-import MergeRequests (allMergeRequests)
+import MergeRequests (id, allMergeRequests)
 import MergeRequestStats
+import MergeRequestComments
 
 tokenFromEnv :: IO String
 tokenFromEnv = getEnv "GITLAB_TOKEN"
@@ -31,8 +32,10 @@ fetchMergeRequests storage = do
   putStrLn "fetching merge requests"
   token <- tokenFromEnv
   mrs <- allMergeRequests token
-  let stats = mapMaybe fromMergeRequest mrs
-  putStrLn "fetched merge requests"
+  putStrLn "fetched merge requests, fetching comments"
+  fetchedComments <- mapM (fetchComments token . MergeRequests.id) mrs
+  putStrLn "fetched comments"
+  let stats = mapMaybe fromMergeRequestAndComments (zip mrs fetchedComments)
   atomically $ writeTVar storage stats
   putStrLn "saved mrs to storage"
 
