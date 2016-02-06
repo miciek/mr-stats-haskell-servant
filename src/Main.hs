@@ -13,6 +13,7 @@ import Control.Concurrent
 import Control.Concurrent.STM
 import Data.Proxy
 import Data.Maybe
+import Data.Time
 import Servant.API
 import Servant.Server
 import System.Environment
@@ -29,6 +30,7 @@ type MergeRequestStorage = TVar [MergeRequestStats]
 
 fetchMergeRequests :: MergeRequestStorage -> IO ()
 fetchMergeRequests storage = do
+  start <- getCurrentTime
   putStrLn "fetching merge requests"
   token <- tokenFromEnv
   mrs <- allMergeRequests token
@@ -38,6 +40,8 @@ fetchMergeRequests storage = do
   let stats = mapMaybe fromMergeRequestAndComments (zip mrs fetchedComments)
   atomically $ writeTVar storage stats
   putStrLn "saved mrs to storage"
+  stop <- getCurrentTime
+  print $ diffUTCTime stop start
 
 type ServerAPI = "mrs" :> Get '[JSON] [MergeRequestStats]
 

@@ -49,7 +49,7 @@ query :: String -> String -> EitherT ServantError IO (Paged [MergeRequest])
 query token page = mergeRequests (Just token) 3106 (Just page)
 
 allMergeRequests :: String -> IO [MergeRequest]
-allMergeRequests token = go [] "37" where
+allMergeRequests token = go [] "1" where
   go current page =
     do
       res <- runEitherT $ query token page
