@@ -14,8 +14,7 @@ import Control.Concurrent.STM
 import Data.Proxy
 import Data.Maybe
 import Data.Time
-import Servant.API
-import Servant.Server
+import Servant
 import System.Environment
 import Network.Wai
 import Network.Wai.Handler.Warp
@@ -44,9 +43,11 @@ fetchMergeRequests storage = do
   print $ diffUTCTime stop start
 
 type ServerAPI = "mrs" :> Get '[JSON] [MergeRequestStats]
+                 :<|> "front" :> Raw
 
 server :: MergeRequestStorage -> Server ServerAPI
-server storage = liftIO $ atomically $ readTVar storage
+server storage = (liftIO $ atomically $ readTVar storage)
+                 :<|> serveDirectory "../mrstats-front"
 
 serverAPI :: Proxy ServerAPI
 serverAPI = Proxy

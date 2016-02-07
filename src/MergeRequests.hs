@@ -19,6 +19,7 @@ import PagedResponse (Paged, nextPage)
 
 data MergeRequest = MergeRequest
   { id :: Int
+  , iid :: Int
   , title :: String
   , state :: String
   , created_at :: String
