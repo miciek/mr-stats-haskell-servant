@@ -18,10 +18,10 @@ data MergeRequestStats = MergeRequestStats
 
 instance ToJSON MergeRequestStats
 
-fromMergeRequestAndComments :: (MergeRequest, Maybe [MergeRequestComment]) -> Maybe MergeRequestStats
+fromMergeRequestAndComments :: (MergeRequest, [MergeRequestComment]) -> Maybe MergeRequestStats
 fromMergeRequestAndComments (mr, mrComments) = do
   ttm <- calculateTimeToMerge mr
-  let comms = calculateCommentsQty mrComments
+  let comms = length mrComments
   return $ MergeRequestStats mr ttm comms ("https://gitlab.tech.lastmile.com/warehouse-stations/stations/merge_requests/" ++ (show $ MergeRequests.iid mr))
 
 calculateTimeToMerge :: MergeRequest -> Maybe NominalDiffTime
@@ -29,9 +29,3 @@ calculateTimeToMerge mr = do
   createdAt <- parseISO8601 $ created_at mr
   updatedAt <- parseISO8601 $ updated_at mr
   return $ diffUTCTime updatedAt createdAt
-
-calculateCommentsQty :: Maybe [MergeRequestComment] -> Int
-calculateCommentsQty mrComments =
-  case mrComments of
-    Just mrc -> length mrc
-    Nothing -> 0

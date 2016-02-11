@@ -30,24 +30,13 @@ type API =
   :> "merge_request"
   :> Capture "mergeRequestId" Int
   :> "comments"
-  :> Get '[JSON] (Maybe [MergeRequestComment])
+  :> Get '[JSON] [MergeRequestComment]
 
 api :: Proxy API
 api = Proxy
 
-mergeRequestComments :: Maybe String -> Int -> Int -> EitherT ServantError IO (Maybe [MergeRequestComment])
+mergeRequestComments :: Maybe String -> Int -> Int -> EitherT ServantError IO [MergeRequestComment]
 mergeRequestComments = client api (BaseUrl Https "gitlab.tech.lastmile.com" 443)
 
-query :: String -> Int -> EitherT ServantError IO (Maybe [MergeRequestComment])
-query token = mergeRequestComments (Just token) 3106
-
-fetchComments :: String -> Int -> IO (Maybe [MergeRequestComment])
-fetchComments token mergeRequestId = do
-      res <- runEitherT $ query token mergeRequestId
-      case res of
-        Left err ->
-          do
-            putStrLn $ "Error: " ++ show err
-            return Nothing
-        Right result ->
-          return result
+fetchComments :: String -> Int -> EitherT ServantError IO [MergeRequestComment]
+fetchComments token = mergeRequestComments (Just token) 3106

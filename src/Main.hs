@@ -9,44 +9,55 @@
 module Main where
 
 import Control.Monad.Trans
-import Control.Concurrent
+import Control.Monad.Trans.Either
 import Control.Concurrent.STM
+import Control.Concurrent.Async
 import Data.Proxy
 import Data.Maybe
-import Data.Time
 import Servant
 import System.Environment
 import Network.Wai
 import Network.Wai.Handler.Warp
-import MergeRequests (id, allMergeRequests)
+import MergeRequests (id, allMergeRequests, MergeRequest)
 import MergeRequestStats
 import MergeRequestComments
 
-tokenFromEnv :: IO String
-tokenFromEnv = getEnv "GITLAB_TOKEN"
+tokenFromEnv :: EitherT String IO String
+tokenFromEnv = do
+  token <- liftIO $ lookupEnv "GITLAB_TOKEN"
+  case token of
+    Nothing -> hoistEither . Left $ "Error: GITLAB_TOKEN not found in the environment vars."
+    Just val -> return val
+
+mergeRequestsFromServer :: String -> EitherT String IO [MergeRequest]
+mergeRequestsFromServer token = do
+  mrsFromServer <- liftIO $ runEitherT $ allMergeRequests token
+  case mrsFromServer of
+    Left err -> left . show $ err
+    Right mrs -> right mrs
+
+commentsFromServer :: String -> Int -> EitherT String IO [MergeRequestComment]
+commentsFromServer token mid = do
+  comments <- liftIO $ runEitherT $ fetchComments token mid
+  case comments of
+    Left err -> left . show $ err
+    Right comms -> right comms
 
 type MergeRequestStorage = TVar [MergeRequestStats]
 
-fetchMergeRequests :: MergeRequestStorage -> IO ()
-fetchMergeRequests storage = do
-  start <- getCurrentTime
-  putStrLn "fetching merge requests"
+saveMergeRequestsToStorage :: MergeRequestStorage -> EitherT String IO ()
+saveMergeRequestsToStorage storage = do
   token <- tokenFromEnv
-  mrs <- allMergeRequests token
-  putStrLn "fetched merge requests, fetching comments"
-  fetchedComments <- mapM (fetchComments token . MergeRequests.id) mrs
-  putStrLn "fetched comments"
-  let stats = mapMaybe fromMergeRequestAndComments (zip mrs fetchedComments)
-  atomically $ writeTVar storage stats
-  putStrLn "saved mrs to storage"
-  stop <- getCurrentTime
-  print $ diffUTCTime stop start
+  mrs <- mergeRequestsFromServer token
+  fetchedComments <- mapM (commentsFromServer token . MergeRequests.id) mrs
+  let stats = zipWith (curry fromMergeRequestAndComments) mrs fetchedComments
+  liftIO . atomically $ writeTVar storage (catMaybes stats)
 
 type ServerAPI = "mrs" :> Get '[JSON] [MergeRequestStats]
                  :<|> "front" :> Raw
 
 server :: MergeRequestStorage -> Server ServerAPI
-server storage = (liftIO $ atomically $ readTVar storage)
+server storage = (liftIO . atomically $ readTVar storage)
                  :<|> serveDirectory "../mrstats-front"
 
 serverAPI :: Proxy ServerAPI
@@ -58,5 +69,5 @@ app storage = serve serverAPI (server storage)
 main :: IO ()
 main = do
   storage <- atomically $ newTVar []
-  _ <- forkIO $ fetchMergeRequests storage
+  _ <- async . runEitherT $ saveMergeRequestsToStorage storage
   run 8080 (app storage)

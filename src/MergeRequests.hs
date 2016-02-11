@@ -49,21 +49,13 @@ mergeRequests = client api (BaseUrl Https "gitlab.tech.lastmile.com" 443)
 query :: String -> String -> EitherT ServantError IO (Paged [MergeRequest])
 query token page = mergeRequests (Just token) 3106 (Just page)
 
-allMergeRequests :: String -> IO [MergeRequest]
-allMergeRequests token = go [] "1" where
-  go current page =
-    do
-      res <- runEitherT $ query token page
-      case res of
-        Left err ->
-          do
-            putStrLn $ "Error: " ++ show err
-            return []
-        Right result ->
-          case newPage of
-            Just p -> go allMrs p
-            Nothing -> return allMrs
-          where
-            mrs = getResponse result
-            allMrs = mrs ++ current
-            newPage = nextPage result
+allMergeRequests :: String -> EitherT ServantError IO [MergeRequest]
+allMergeRequests token = go [] "38" where
+  go current page = do
+    pagedResponse <- query token page
+    let mrs = getResponse pagedResponse
+    let allMrs = mrs ++ current
+    let newPage = nextPage pagedResponse
+    case newPage of
+      Just p -> go allMrs p
+      Nothing -> return allMrs

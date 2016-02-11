@@ -19,6 +19,7 @@ executable mrstats
   main-is:             Main.hs
   build-depends:       base >=4.8 && <4.9
                      , aeson >= 0.10
+                     , async
                      , attoparsec
                      , blaze-html
                      , blaze-markup
