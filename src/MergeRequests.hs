@@ -50,7 +50,7 @@ query :: String -> String -> EitherT ServantError IO (Paged [MergeRequest])
 query token page = mergeRequests (Just token) 3106 (Just page)
 
 allMergeRequests :: String -> EitherT ServantError IO [MergeRequest]
-allMergeRequests token = go [] "38" where
+allMergeRequests token = go [] "1" where
   go current page = do
     pagedResponse <- query token page
     let mrs = getResponse pagedResponse

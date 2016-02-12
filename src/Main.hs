@@ -45,13 +45,20 @@ commentsFromServer token mid = do
 
 type MergeRequestStorage = TVar [MergeRequestStats]
 
-saveMergeRequestsToStorage :: MergeRequestStorage -> EitherT String IO ()
+saveMergeRequestsToStorage :: MergeRequestStorage -> EitherT String IO [MergeRequestStats]
 saveMergeRequestsToStorage storage = do
   token <- tokenFromEnv
   mrs <- mergeRequestsFromServer token
   fetchedComments <- mapM (commentsFromServer token . MergeRequests.id) mrs
-  let stats = zipWith (curry fromMergeRequestAndComments) mrs fetchedComments
-  liftIO . atomically $ writeTVar storage (catMaybes stats)
+  let stats = catMaybes $ zipWith (curry fromMergeRequestAndComments) mrs fetchedComments
+  liftIO . atomically $ writeTVar storage stats
+  return $ stats
+
+logIt :: Show a => IO a -> IO a
+logIt toLog = do
+  result <- toLog
+  print result
+  return result
 
 type ServerAPI = "mrs" :> Get '[JSON] [MergeRequestStats]
                  :<|> "front" :> Raw
@@ -69,5 +76,5 @@ app storage = serve serverAPI (server storage)
 main :: IO ()
 main = do
   storage <- atomically $ newTVar []
-  _ <- async . runEitherT $ saveMergeRequestsToStorage storage
+  _ <- async . logIt . runEitherT $ saveMergeRequestsToStorage storage
   run 8080 (app storage)
