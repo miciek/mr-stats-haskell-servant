@@ -18,9 +18,10 @@ import Servant
 import System.Environment
 import Network.Wai
 import Network.Wai.Handler.Warp
-import MergeRequests (id, allMergeRequests, MergeRequest)
+import MergeRequests (id, allMergeRequests)
 import MergeRequestStats
 import MergeRequestComments
+import Tools
 
 tokenFromEnv :: EitherT String IO String
 tokenFromEnv = do
@@ -29,36 +30,16 @@ tokenFromEnv = do
     Nothing -> hoistEither . Left $ "Error: GITLAB_TOKEN not found in the environment vars."
     Just val -> return val
 
-mergeRequestsFromServer :: String -> EitherT String IO [MergeRequest]
-mergeRequestsFromServer token = do
-  mrsFromServer <- liftIO $ runEitherT $ allMergeRequests token
-  case mrsFromServer of
-    Left err -> left . show $ err
-    Right mrs -> right mrs
-
-commentsFromServer :: String -> Int -> EitherT String IO [MergeRequestComment]
-commentsFromServer token mid = do
-  comments <- liftIO $ runEitherT $ fetchComments token mid
-  case comments of
-    Left err -> left . show $ err
-    Right comms -> right comms
-
 type MergeRequestStorage = TVar [MergeRequestStats]
 
 saveMergeRequestsToStorage :: MergeRequestStorage -> EitherT String IO [MergeRequestStats]
 saveMergeRequestsToStorage storage = do
   token <- tokenFromEnv
-  mrs <- mergeRequestsFromServer token
-  fetchedComments <- mapM (commentsFromServer token . MergeRequests.id) mrs
+  mrs <- errorToString . allMergeRequests $ token
+  fetchedComments <- mapM (errorToString . fetchComments token . MergeRequests.id) mrs
   let stats = catMaybes $ zipWith (curry fromMergeRequestAndComments) mrs fetchedComments
   liftIO . atomically $ writeTVar storage stats
-  return $ stats
-
-logIt :: Show a => IO a -> IO a
-logIt toLog = do
-  result <- toLog
-  print result
-  return result
+  return stats
 
 type ServerAPI = "mrs" :> Get '[JSON] [MergeRequestStats]
                  :<|> "front" :> Raw
