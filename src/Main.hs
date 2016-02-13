@@ -15,20 +15,12 @@ import Control.Concurrent.Async
 import Data.Proxy
 import Data.Maybe
 import Servant
-import System.Environment
 import Network.Wai
 import Network.Wai.Handler.Warp
 import MergeRequests (id, allMergeRequests)
 import MergeRequestStats
 import MergeRequestComments
 import Tools
-
-appConfig :: EitherT String IO AppConfig
-appConfig = do
-  token <- liftIO $ lookupEnv "GITLAB_TOKEN"
-  case token of
-    Nothing -> hoistEither . Left $ "Error: GITLAB_TOKEN not found in the environment vars."
-    Just val -> return $ AppConfig val
 
 type MergeRequestStorage = TVar [MergeRequestStats]
 
@@ -37,7 +29,7 @@ saveMergeRequestsToStorage storage = do
   config <- appConfig
   mrs <- errorToString . allMergeRequests $ config
   fetchedComments <- mapM (errorToString . fetchComments config . MergeRequests.id) mrs
-  let stats = catMaybes $ zipWith (curry fromMergeRequestAndComments) mrs fetchedComments
+  let stats = catMaybes $ zipWith (fromMergeRequestAndComments $ cfgEntityUrl config) mrs fetchedComments
   liftIO . atomically $ writeTVar storage stats
   return stats
 

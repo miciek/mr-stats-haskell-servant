@@ -26,6 +26,7 @@ executable mrstats
                      , bytestring
                      , directory
                      , either
+                     , errors
                      , http-media
                      , http-link-header
                      , http-types

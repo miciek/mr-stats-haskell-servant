@@ -18,11 +18,11 @@ data MergeRequestStats = MergeRequestStats
 
 instance ToJSON MergeRequestStats
 
-fromMergeRequestAndComments :: (MergeRequest, [MergeRequestComment]) -> Maybe MergeRequestStats
-fromMergeRequestAndComments (mr, mrComments) = do
+fromMergeRequestAndComments :: String -> MergeRequest -> [MergeRequestComment] -> Maybe MergeRequestStats
+fromMergeRequestAndComments entityUrl mr mrComments = do
   ttm <- calculateTimeToMerge mr
   let comms = length mrComments
-  return $ MergeRequestStats mr ttm comms ("https://gitlab.tech.lastmile.com/warehouse-stations/stations/merge_requests/" ++ (show $ MergeRequests.iid mr))
+  return $ MergeRequestStats mr ttm comms (entityUrl ++ (show $ MergeRequests.iid mr))
 
 calculateTimeToMerge :: MergeRequest -> Maybe NominalDiffTime
 calculateTimeToMerge mr = do

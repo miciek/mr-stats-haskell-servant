@@ -44,11 +44,15 @@ type API =
 api :: Proxy API
 api = Proxy
 
-mergeRequests :: Maybe String -> Int -> Maybe String -> EitherT ServantError IO (Paged [MergeRequest])
-mergeRequests = client api (BaseUrl Https "gitlab.tech.lastmile.com" 443)
+mergeRequests :: BaseUrl -> Maybe String -> Int -> Maybe String -> EitherT ServantError IO (Paged [MergeRequest])
+mergeRequests url = client api url
 
 query :: AppConfig -> String -> EitherT ServantError IO (Paged [MergeRequest])
-query config page = mergeRequests (Just $ configToken config) 3106 (Just page)
+query config page = mergeRequests
+                      (BaseUrl Https (cfgServerHost config) (cfgServerPort config))
+                      (Just $ cfgToken config)
+                      (cfgProjectId config)
+                      (Just page)
 
 allMergeRequests :: AppConfig -> EitherT ServantError IO [MergeRequest]
 allMergeRequests config = go [] "1" where

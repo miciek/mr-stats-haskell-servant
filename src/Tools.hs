@@ -1,7 +1,10 @@
-module Tools (errorToString, logIt, AppConfig(..)) where
+module Tools (errorToString, logIt, AppConfig(..), appConfig) where
 
 import Control.Monad.Trans
 import Control.Monad.Trans.Either
+import Control.Error (note)
+import Text.Read
+import System.Environment
 
 logIt :: Show a => IO a -> IO a
 logIt toLog = do
@@ -16,4 +19,33 @@ errorToString m = do
     Left err -> left . show $ err
     Right val -> right val
 
-data AppConfig = AppConfig { configToken :: String }
+data AppConfig = AppConfig
+  { cfgToken :: String
+  , cfgServerHost :: String
+  , cfgServerPort :: Int
+  , cfgProjectId :: Int
+  , cfgEntityUrl :: String
+  }
+
+appConfig :: EitherT String IO AppConfig
+appConfig = do
+  token <- getEnvString "GITLAB_TOKEN"
+  serverHost <- getEnvString "SERVER_HOST"
+  serverPort <- getEnvInt "SERVER_PORT"
+  projectId <- getEnvInt "PROJECT_ID"
+  entityUrl <- getEnvString "ENTITY_URL"
+  return $ AppConfig token serverHost serverPort projectId entityUrl
+
+getEnvString :: String -> EitherT String IO String
+getEnvString name = do
+  val <- liftIO $ lookupEnv name
+  hoistEither $ note errorNote val
+  where
+    errorNote = "Error: " ++ name ++ " not found in the environment vars."
+
+getEnvInt :: String -> EitherT String IO Int
+getEnvInt name = do
+  val <- getEnvString name
+  hoistEither $ note errorNote (readMaybe val)
+  where
+    errorNote = "Error: couldn't parse int value of env var " ++ name ++ "."

@@ -40,4 +40,4 @@ mergeRequestComments :: Maybe String -> Int -> Int -> EitherT ServantError IO [M
 mergeRequestComments = client api (BaseUrl Https "gitlab.tech.lastmile.com" 443)
 
 fetchComments :: AppConfig -> Int -> EitherT ServantError IO [MergeRequestComment]
-fetchComments config = mergeRequestComments (Just $ configToken config) 3106
+fetchComments config = mergeRequestComments (Just $ cfgToken config) 3106
