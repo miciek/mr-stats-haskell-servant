@@ -44,23 +44,23 @@ type API =
 api :: Proxy API
 api = Proxy
 
-mergeRequests :: BaseUrl -> Maybe String -> Int -> Maybe String -> EitherT ServantError IO (Paged [MergeRequest])
-mergeRequests url = client api url
+apiQuery :: BaseUrl -> Maybe String -> Int -> Maybe String -> EitherT ServantError IO (Paged [MergeRequest])
+apiQuery url = client api url
 
-query :: AppConfig -> String -> EitherT ServantError IO (Paged [MergeRequest])
-query config page = mergeRequests
+pagedMergeRequests :: AppConfig -> String -> EitherT ServantError IO (Paged [MergeRequest])
+pagedMergeRequests config page = apiQuery
                       (BaseUrl Https (cfgServerHost config) (cfgServerPort config))
                       (Just $ cfgToken config)
                       (cfgProjectId config)
                       (Just page)
 
 allMergeRequests :: AppConfig -> EitherT ServantError IO [MergeRequest]
-allMergeRequests config = go [] "1" where
-  go current page = do
-    pagedResponse <- query config page
+allMergeRequests config = fetchPage [] "1" where
+  fetchPage current page = do
+    pagedResponse <- pagedMergeRequests config page
     let mrs = getResponse pagedResponse
     let allMrs = mrs ++ current
     let newPage = nextPage pagedResponse
     case newPage of
-      Just p -> go allMrs p
+      Just p -> fetchPage allMrs p
       Nothing -> return allMrs
