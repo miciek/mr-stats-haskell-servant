@@ -15,6 +15,7 @@ import Data.Proxy
 import GHC.Generics
 import Servant.API
 import Servant.Client
+import Tools
 
 data MergeRequestComment = MergeRequestComment
   { note :: String
@@ -38,5 +39,5 @@ api = Proxy
 mergeRequestComments :: Maybe String -> Int -> Int -> EitherT ServantError IO [MergeRequestComment]
 mergeRequestComments = client api (BaseUrl Https "gitlab.tech.lastmile.com" 443)
 
-fetchComments :: String -> Int -> EitherT ServantError IO [MergeRequestComment]
-fetchComments token = mergeRequestComments (Just token) 3106
+fetchComments :: AppConfig -> Int -> EitherT ServantError IO [MergeRequestComment]
+fetchComments config = mergeRequestComments (Just $ configToken config) 3106

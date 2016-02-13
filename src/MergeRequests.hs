@@ -16,6 +16,7 @@ import GHC.Generics
 import Servant.API
 import Servant.Client
 import PagedResponse (Paged, nextPage)
+import Tools (AppConfig (..))
 
 data MergeRequest = MergeRequest
   { id :: Int
@@ -46,13 +47,13 @@ api = Proxy
 mergeRequests :: Maybe String -> Int -> Maybe String -> EitherT ServantError IO (Paged [MergeRequest])
 mergeRequests = client api (BaseUrl Https "gitlab.tech.lastmile.com" 443)
 
-query :: String -> String -> EitherT ServantError IO (Paged [MergeRequest])
-query token page = mergeRequests (Just token) 3106 (Just page)
+query :: AppConfig -> String -> EitherT ServantError IO (Paged [MergeRequest])
+query config page = mergeRequests (Just $ configToken config) 3106 (Just page)
 
-allMergeRequests :: String -> EitherT ServantError IO [MergeRequest]
-allMergeRequests token = go [] "1" where
+allMergeRequests :: AppConfig -> EitherT ServantError IO [MergeRequest]
+allMergeRequests config = go [] "1" where
   go current page = do
-    pagedResponse <- query token page
+    pagedResponse <- query config page
     let mrs = getResponse pagedResponse
     let allMrs = mrs ++ current
     let newPage = nextPage pagedResponse
