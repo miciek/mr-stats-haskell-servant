@@ -22,28 +22,28 @@ import MergeRequestStats
 import MergeRequestComments
 import Tools
 
-type MergeRequestStorage = TVar [MergeRequestStats]
+type StatsStorage = TVar [MergeRequestStats]
 
-saveMergeRequestsToStorage :: MergeRequestStorage -> EitherT String IO [MergeRequestStats]
+saveMergeRequestsToStorage :: StatsStorage -> EitherT String IO [MergeRequestStats]
 saveMergeRequestsToStorage storage = do
   config <- appConfig
-  mrs <- errorToString . allMergeRequests $ config
-  fetchedComments <- mapM (errorToString . fetchComments config . MergeRequests.id) mrs
-  let stats = catMaybes $ zipWith (fromMergeRequestAndComments $ cfgEntityUrl config) mrs fetchedComments
+  fetchedMRs <- errorToString . allMergeRequests $ config
+  fetchedComments <- mapM (errorToString . allComments config . MergeRequests.id) fetchedMRs
+  let stats = catMaybes $ zipWith (fromMergeRequestAndComments $ cfgEntityUrl config) fetchedMRs fetchedComments
   liftIO . atomically $ writeTVar storage stats
   return stats
 
 type ServerAPI = "mrs" :> Get '[JSON] [MergeRequestStats]
                  :<|> "front" :> Raw
 
-server :: MergeRequestStorage -> Server ServerAPI
+server :: StatsStorage -> Server ServerAPI
 server storage = (liftIO . atomically $ readTVar storage)
                  :<|> serveDirectory "../mrstats-front"
 
 serverAPI :: Proxy ServerAPI
 serverAPI = Proxy
 
-app :: MergeRequestStorage -> Application
+app :: StatsStorage -> Application
 app storage = serve serverAPI (server storage)
 
 main :: IO ()

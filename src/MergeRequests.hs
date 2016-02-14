@@ -44,10 +44,12 @@ type API =
 api :: Proxy API
 api = Proxy
 
-apiQuery :: BaseUrl -> Maybe String -> Int -> Maybe String -> EitherT ServantError IO (Paged [MergeRequest])
-apiQuery url = client api url
+apiQuery :: BaseUrl -> Maybe String -> Int -> Maybe String
+            -> EitherT ServantError IO (Paged [MergeRequest])
+apiQuery = client api
 
-pagedMergeRequests :: AppConfig -> String -> EitherT ServantError IO (Paged [MergeRequest])
+pagedMergeRequests :: AppConfig -> String
+                      -> EitherT ServantError IO (Paged [MergeRequest])
 pagedMergeRequests config page = apiQuery
                       (BaseUrl Https (cfgServerHost config) (cfgServerPort config))
                       (Just $ cfgToken config)

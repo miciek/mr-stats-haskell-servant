@@ -7,7 +7,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module MergeRequestComments (MergeRequestComment (..), fetchComments) where
+module MergeRequestComments (MergeRequestComment (..), allComments) where
 
 import Control.Monad.Trans.Either
 import Data.Aeson
@@ -36,8 +36,8 @@ type API =
 api :: Proxy API
 api = Proxy
 
-mergeRequestComments :: Maybe String -> Int -> Int -> EitherT ServantError IO [MergeRequestComment]
-mergeRequestComments = client api (BaseUrl Https "gitlab.tech.lastmile.com" 443)
+apiQuery :: Maybe String -> Int -> Int -> EitherT ServantError IO [MergeRequestComment]
+apiQuery = client api (BaseUrl Https "gitlab.tech.lastmile.com" 443)
 
-fetchComments :: AppConfig -> Int -> EitherT ServantError IO [MergeRequestComment]
-fetchComments config = mergeRequestComments (Just $ cfgToken config) 3106
+allComments :: AppConfig -> Int -> EitherT ServantError IO [MergeRequestComment]
+allComments config = apiQuery (Just $ cfgToken config) 3106
