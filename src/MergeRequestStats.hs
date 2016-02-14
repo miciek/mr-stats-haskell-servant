@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module MergeRequestStats (MergeRequestStats (..), fromMergeRequestAndComments) where
+module MergeRequestStats (MergeRequestStats (..), calculateStats) where
 
 import Data.Aeson
 import Data.Time.Clock
@@ -8,6 +8,7 @@ import Data.Time.ISO8601
 import GHC.Generics
 import MergeRequests (MergeRequest (..))
 import MergeRequestComments
+import Tools
 
 data MergeRequestStats = MergeRequestStats
   { mergeRequest :: MergeRequest
@@ -18,11 +19,14 @@ data MergeRequestStats = MergeRequestStats
 
 instance ToJSON MergeRequestStats
 
-fromMergeRequestAndComments :: String -> MergeRequest -> [MergeRequestComment] -> Maybe MergeRequestStats
-fromMergeRequestAndComments entityUrl mr mrComments = do
+calculateStats :: AppConfig -> MergeRequest -> [MergeRequestComment]
+                  -> Maybe MergeRequestStats
+calculateStats config mr mrComments = do
   ttm <- calculateTimeToMerge mr
-  let comms = length mrComments
-  return $ MergeRequestStats mr ttm comms (entityUrl ++ (show $ MergeRequests.iid mr))
+  return $ MergeRequestStats mr
+           ttm
+           (length mrComments)
+           (cfgEntityUrl config ++ show (iid mr))
 
 calculateTimeToMerge :: MergeRequest -> Maybe NominalDiffTime
 calculateTimeToMerge mr = do

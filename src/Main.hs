@@ -29,7 +29,7 @@ saveMergeRequestsToStorage storage = do
   config <- appConfig
   fetchedMRs <- errorToString . allMergeRequests $ config
   fetchedComments <- mapM (errorToString . allComments config . MergeRequests.id) fetchedMRs
-  let stats = catMaybes $ zipWith (fromMergeRequestAndComments $ cfgEntityUrl config) fetchedMRs fetchedComments
+  let stats = catMaybes $ zipWith (calculateStats config) fetchedMRs fetchedComments
   liftIO . atomically $ writeTVar storage stats
   return stats
 
