@@ -36,8 +36,13 @@ type API =
 api :: Proxy API
 api = Proxy
 
-apiQuery :: Maybe String -> Int -> Int -> EitherT ServantError IO [MergeRequestComment]
-apiQuery = client api (BaseUrl Https "gitlab.tech.lastmile.com" 443)
+apiQuery :: BaseUrl -> Maybe String -> Int -> Int
+            -> EitherT ServantError IO [MergeRequestComment]
+apiQuery = client api
 
-allComments :: AppConfig -> Int -> EitherT ServantError IO [MergeRequestComment]
-allComments config = apiQuery (Just $ cfgToken config) 3106
+allComments :: AppConfig -> Int
+               -> EitherT ServantError IO [MergeRequestComment]
+allComments config = apiQuery
+                      (BaseUrl Https (cfgServerHost config) (cfgServerPort config))
+                      (Just $ cfgToken config)
+                      (cfgProjectId config)
