@@ -10,7 +10,6 @@ module Main where
 
 import Control.Monad.Trans
 import Control.Monad.Trans.Either
-import Control.Concurrent.STM
 import Control.Concurrent.Async
 import Data.Proxy
 import Data.Maybe
@@ -22,22 +21,22 @@ import MergeRequestStats
 import MergeRequestComments
 import Tools
 
-type StatsStorage = TVar [MergeRequestStats]
+type StatsStorage = InMemStorage MergeRequestStats
 
-saveMergeRequestsToStorage :: StatsStorage -> EitherT String IO [MergeRequestStats]
-saveMergeRequestsToStorage storage = do
+fetchMRsAndSaveStats :: StatsStorage -> EitherT String IO ()
+fetchMRsAndSaveStats storage = do
   config <- appConfig
   fetchedMRs <- errorToString . allMergeRequests $ config
   fetchedComments <- mapM (errorToString . allComments config . MergeRequests.id) fetchedMRs
   let stats = catMaybes $ zipWith (calculateStats config) fetchedMRs fetchedComments
-  liftIO . atomically $ writeTVar storage stats
-  return stats
+  liftIO $ writeToStorage storage stats
+  return ()
 
 type ServerAPI = "mrs" :> Get '[JSON] [MergeRequestStats]
                  :<|> "front" :> Raw
 
 server :: StatsStorage -> Server ServerAPI
-server storage = (liftIO . atomically $ readTVar storage)
+server storage = liftIO (readFromStorage storage)
                  :<|> serveDirectory "../mrstats-front"
 
 serverAPI :: Proxy ServerAPI
@@ -48,6 +47,6 @@ app storage = serve serverAPI (server storage)
 
 main :: IO ()
 main = do
-  storage <- atomically $ newTVar []
-  _ <- async . logIt . runEitherT $ saveMergeRequestsToStorage storage
+  storage <- newStorage
+  _ <- async . logIt . runEitherT $ fetchMRsAndSaveStats storage
   run 8080 (app storage)
