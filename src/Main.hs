@@ -27,26 +27,26 @@ fetchMRsAndSaveStats :: StatsStorage -> EitherT String IO ()
 fetchMRsAndSaveStats storage = do
   config <- appConfig
   fetchedMRs <- errorToString . allMergeRequests $ config
-  fetchedComments <- mapM (errorToString . allComments config . MergeRequests.id) fetchedMRs
+  let fetchComments = errorToString . allComments config . MergeRequests.id
+  fetchedComments <- mapM fetchComments fetchedMRs
   let stats = catMaybes $ zipWith (calculateStats config) fetchedMRs fetchedComments
   liftIO $ writeToStorage storage stats
-  return ()
 
 type ServerAPI = "mrs" :> Get '[JSON] [MergeRequestStats]
                  :<|> "front" :> Raw
+
+serverAPI :: Proxy ServerAPI
+serverAPI = Proxy
 
 server :: StatsStorage -> Server ServerAPI
 server storage = liftIO (readFromStorage storage)
                  :<|> serveDirectory "../mrstats-front"
 
-serverAPI :: Proxy ServerAPI
-serverAPI = Proxy
-
-app :: StatsStorage -> Application
-app storage = serve serverAPI (server storage)
+serverApp :: StatsStorage -> Application
+serverApp storage = serve serverAPI (server storage)
 
 main :: IO ()
 main = do
   storage <- newStorage
   _ <- async . logIt . runEitherT $ fetchMRsAndSaveStats storage
-  run 8080 (app storage)
+  run 8080 (serverApp storage)
