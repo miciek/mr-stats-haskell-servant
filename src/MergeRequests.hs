@@ -61,7 +61,7 @@ allMergeRequests config = fetchPage [] "1" where
   fetchPage current page = do
     pagedResponse <- pagedMergeRequests config page
     let mrs = getResponse pagedResponse
-    let allMrs = mrs ++ current
+    let allMrs = filter (\mr -> state mr == "merged") mrs ++ current
     let newPage = nextPage pagedResponse
     case newPage of
       Just p -> fetchPage allMrs p
